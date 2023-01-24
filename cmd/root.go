@@ -1,20 +1,21 @@
 /*
-Copyright © 2023 NAME HERE <EMAIL ADDRESS>
+Copyright © 2023 Jun Peng Ong
 */
 package cmd
 
 import (
+	"fmt"
 	"os"
-	"path/filepath"
 
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
-var dataFile string
+var cfgFile string
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
-	Use:   "tri",
+	Use:   "todo_cli",
 	Short: "A brief description of your application",
 	Long: `A longer description that spans multiple lines and likely contains
 examples and usage of using your application. For example:
@@ -37,6 +38,9 @@ func Execute() {
 }
 
 func init() {
+	cobra.OnInitialize(initConfig)
+
+	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is ...}")
 	// Here you will define your flags and configuration settings.
 	// Cobra supports persistent flags, which, if defined here,
 	// will be global for your application.
@@ -47,16 +51,31 @@ func init() {
 	// 	log.Println("Unable to detect home directory. Please set data using --datafile.")
 	// }
 
-	rootCmd.PersistentFlags().StringVar(
-		&dataFile,
-		"datafile",
-		filepath.Join("data", ".tridos.json"),
-		"data file to store todos",
-	)
+	// rootCmd.PersistentFlags().StringVar(
+	// 	&dataFile,
+	// 	"datafile",
+	// 	filepath.Join("data", ".tridos.json"),
+	// 	"data file to store todos",
+	// )
 
-	dataFile, _ = filepath.Abs(dataFile)
+	// dataFile, _ = filepath.Abs(dataFile)
 
 	// Cobra also supports local flags, which will only run
 	// when this action is called directly.
 	rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+}
+
+func initConfig() {
+	viper.SetConfigName("config")
+	viper.SetConfigType("yaml")
+	viper.AddConfigPath("$HOME/.todo_cli")
+
+	viper.SetEnvPrefix("todocli")
+	viper.BindEnv("datafile")
+	viper.AutomaticEnv()
+
+	// If a config file is found, read it in
+	if err := viper.ReadInConfig(); err != nil {
+		fmt.Println("Using config file:", viper.ConfigFileUsed())
+	}
 }
