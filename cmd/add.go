@@ -21,7 +21,8 @@ var addCmd = &cobra.Command{
 }
 
 func addRun(cmd *cobra.Command, args []string) {
-	items, err := todo.ReadItems("./data/.tridos.json")
+
+	items, err := todo.ReadItems(dataFile)
 
 	if err != nil {
 		log.Printf("%v", err)
@@ -31,7 +32,7 @@ func addRun(cmd *cobra.Command, args []string) {
 		items = append(items, todo.Item{Text: x})
 	}
 
-	err = todo.SaveItems("./data/.tridos.json", items)
+	err = todo.SaveItems(dataFile, items)
 
 	if err != nil {
 		fmt.Errorf("%v", err)
