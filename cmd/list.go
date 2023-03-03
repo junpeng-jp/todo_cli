@@ -13,7 +13,6 @@ import (
 	"github.com/junpeng.ong/todo_cli/todo"
 
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
 
 var doneOpt, allOpt bool
@@ -28,18 +27,20 @@ var listCmd = &cobra.Command{
 
 func listRun(cmd *cobra.Command, args []string) {
 
-	items, err := todo.ReadItems(viper.GetString("datafile"))
+	items, err := todo.ReadItems(todoFile)
 
 	if err != nil {
 		log.Printf("%v", err)
 	}
 
-	sort.Sort(todo.ByPri(items))
+	sort.Slice(items, todo.ByPriority(items))
 
 	w := tabwriter.NewWriter(os.Stdout, 3, 0, 1, ' ', 0)
-	for _, i := range items {
-		if allOpt || i.Done == doneOpt {
-			fmt.Fprintf(w, "%v\t%v\t%v\t%v\t\n", i.Label(), i.PrettyDone(), i.PrettyP(), i.Text)
+	for i, item := range items {
+
+		line := todo.TodoLine(item).Pprint()
+		if allOpt || item.Done == doneOpt {
+			fmt.Fprintf(w, "%v.\t%v\t\n", i, line)
 		}
 	}
 

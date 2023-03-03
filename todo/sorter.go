@@ -1,17 +1,23 @@
 package todo
 
-type ByPri []Item
+func ByPriority(items []Item) func(i, j int) bool {
 
-func (s ByPri) Len() int      { return len(s) }
-func (s ByPri) Swap(i, j int) { s[i], s[j] = s[j], s[i] }
-func (s ByPri) Less(i, j int) bool {
-	if s[i].Done != s[j].Done {
-		return s[i].Done
+	return func(i, j int) bool {
+		if items[i].Done != items[j].Done {
+			return items[i].Done
+		}
+
+		if items[i].Priority == items[j].Priority {
+			return items[i].CreatedAt < items[j].CreatedAt
+		}
+
+		return items[i].Priority < items[j].Priority
 	}
+}
 
-	if s[i].Priority == s[j].Priority {
-		return s[i].Position < s[j].Position
+func ByCreateTime(items []Item) func(i, j int) bool {
+
+	return func(i, j int) bool {
+		return items[i].CreatedAt < items[j].CreatedAt
 	}
-
-	return s[i].Priority < s[j].Priority
 }

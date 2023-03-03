@@ -1,62 +1,63 @@
 package todo
 
 import (
-	"encoding/json"
-	"fmt"
+	"bytes"
+	"errors"
+	"io"
 	"io/ioutil"
+	"os"
+	"time"
+
+	"github.com/spf13/cobra"
+	"gopkg.in/yaml.v3"
 )
 
 type Item struct {
-	Text     string `json:"text"`
-	Priority int    `json:"priority"`
-	Position int    `json:"position"`
-	Done     bool   `json:"done"`
+	Description string   `yaml:"description"`
+	Priority    int      `yaml:"priority"`
+	Project     string   `yaml:"project"`
+	Tags        []string `yaml:"tags"`
+	DueDate     int64    `yaml:"due_date"`
+	Done        bool     `yaml:"done"`
+	CreatedAt   int64    `yaml:"created_at"`
+	UpdatedAt   int64    `yaml:"updated_at"`
 }
 
-func (i *Item) SetPriority(pri int) {
-	switch pri {
-	case 1:
-		i.Priority = 1
-	case 3:
-		i.Priority = 3
-	default:
-		i.Priority = 2
+func NewItem(id int, description string, priority int, project string, tags []string, dueDate time.Time) *Item {
+	if project == "" {
+		project = "unclassified"
 	}
-}
 
-func (i *Item) PrettyP() string {
-	switch i.Priority {
-	case 1:
-		return "(1)"
-	case 3:
-		return "(3)"
-	default:
-		return " "
+	item := Item{
+		Description: description,
+		Priority:    priority,
+		Project:     project,
+		Tags:        tags,
+		DueDate:     dueDate.Unix()*int64(time.Second/time.Millisecond) + int64(id),
+		Done:        false,
+		CreatedAt:   time.Now().UnixMilli(),
+		UpdatedAt:   time.Now().UnixMilli(),
 	}
-}
 
-func (i *Item) PrettyDone() string {
-	if i.Done {
-		return "X"
-	}
-	return ""
-}
-
-func (i *Item) Label() string {
-	return fmt.Sprintf("%v.", i.Position)
+	return &item
 }
 
 func SaveItems(filename string, items []Item) error {
-	b, err := json.Marshal(items)
+	f, err := os.OpenFile(filename, os.O_WRONLY|os.O_CREATE, 0644)
+	cobra.CheckErr(err)
 
-	if err != nil {
-		return err
-	}
+	encoder := yaml.NewEncoder(f)
+	defer func() {
+		err := f.Close()
 
-	err = ioutil.WriteFile(filename, b, 0644)
+		if err != nil {
+			panic(err)
+		}
+	}()
 
-	if err != nil {
-		return err
+	for _, item := range items {
+		// Marshal each item in array as separate document
+		encoder.Encode(item)
 	}
 
 	return nil
@@ -72,12 +73,20 @@ func ReadItems(filename string) ([]Item, error) {
 
 	var items []Item
 
-	if err := json.Unmarshal(b, &items); err != nil {
-		return []Item{}, err
-	}
+	decoder := yaml.NewDecoder(bytes.NewReader(b))
 
-	for i := range items {
-		items[i].Position = i + 1
+	for {
+
+		item := Item{}
+
+		if err := decoder.Decode(&item); err != nil {
+			if errors.Is(err, io.EOF) {
+				break
+			}
+			panic(err)
+		}
+
+		items = append(items, item)
 	}
 
 	return items, nil
